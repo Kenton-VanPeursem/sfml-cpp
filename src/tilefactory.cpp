@@ -17,4 +17,3 @@ sf::Sprite TileFactory::getTile(int num) {
   int y = num / width;
   return getTile(x, y);
 }
-
