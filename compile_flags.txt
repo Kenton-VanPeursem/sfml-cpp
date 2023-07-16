@@ -1,0 +1,2 @@
+-I/usr/local/Cellar/sfml/2.6.0/include
+-Iheaders
