@@ -1,4 +1,6 @@
 #include "SFML/Graphics.hpp"
+#include "SFML/Graphics/RectangleShape.hpp"
+#include "SFML/Graphics/Shape.hpp"
 #include "SFML/Graphics/Sprite.hpp"
 #include "SFML/Graphics/Texture.hpp"
 #include "SFML/System/Vector2.hpp"
@@ -13,19 +15,12 @@
 #define TILE_MAP "assets/tiles_packed.png"
 #define TILE_SIZE 18
 #define HALF_TILE_SIZE 9
-#define WINDOW_HEIGHT_TILES 30
-#define WINDOW_WIDTH_TILES 20
+#define WINDOW_WIDTH_TILES 30
+#define WINDOW_HEIGHT_TILES 20
 #define SELECTION_PADDING 6
 #define SELECTION_ALPHA 0.75
 
 int main() {
-  sf::ContextSettings contextSettings;
-  contextSettings.antialiasingLevel = 8;
-
-  sf::RenderWindow window(sf::VideoMode(TILE_SIZE * WINDOW_HEIGHT_TILES,
-                                        TILE_SIZE * WINDOW_WIDTH_TILES),
-                          "My Window", sf::Style::Default, contextSettings);
-  window.setFramerateLimit(60);
 
   sf::Texture texture;
   if (!texture.loadFromFile(TILE_MAP)) {
@@ -33,21 +28,39 @@ int main() {
     return EXIT_FAILURE;
   }
 
+  sf::ContextSettings contextSettings;
+  contextSettings.antialiasingLevel = 8;
+
+  sf::Vector2u mapSize = sf::Vector2u(TILE_SIZE * WINDOW_WIDTH_TILES,
+                                      TILE_SIZE * WINDOW_HEIGHT_TILES);
+  // set the window height to be the max of the mapSize height and the TILE_SIZE
+  // * WINDOW_HEIGHT_TILES
+  size_t width, height;
+  if (mapSize.y < texture.getSize().y) {
+    height = texture.getSize().y;
+  } else {
+    height = mapSize.y;
+  }
+  width = TILE_SIZE * WINDOW_WIDTH_TILES + texture.getSize().x;
+
+  sf::RenderWindow window(sf::VideoMode(width, height), "My Window",
+                          sf::Style::Default, contextSettings);
+  window.setFramerateLimit(60);
+
+  sf::Sprite selectionArea(texture);
+  // center the selection area vertically
+  float selectionAreaPadding = float(height - texture.getSize().y) / 2;
+  selectionArea.setPosition(0.f, selectionAreaPadding);
+
+  sf::RectangleShape selectionBackground(
+      sf::Vector2f(texture.getSize().x, height));
+  selectionBackground.setFillColor(sf::Color(58, 65, 83, 0));
+
   TileFactory tileFactory(texture, TILE_SIZE);
 
   std::vector<int> pos{0, 4, 8, 88};
 
-  std::vector<sf::Sprite> selectable;
-  size_t active = 0;
-  sf::Sprite ptr_tile;
-  for (size_t i = 0; i < 4; i++) {
-    ptr_tile = tileFactory.getTile(pos[i]);
-    ptr_tile.setPosition(TILE_SIZE * (i + 1),
-                         TILE_SIZE * (WINDOW_WIDTH_TILES - 1));
-    selectable.push_back(ptr_tile);
-  }
-
-  sf::Sprite pointer = sf::Sprite(selectable[active]);
+  sf::Sprite pointer = sf::Sprite(tileFactory.getTile(0));
   pointer.setColor(sf::Color(255, 255, 255, SELECTION_ALPHA * 255));
 
   std::vector<sf::Sprite> placedTiles;
@@ -66,20 +79,18 @@ int main() {
         window.close();
       } else if (event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Left) {
-          // check if mouse is over a selectable
-          bool selectableClicked = false;
-          for (size_t i = 0; i < selectable.size(); i++) {
-            sf::FloatRect bounds = selectable[i].getGlobalBounds();
-            if (bounds.contains(
-                    sf::Vector2f(event.mouseButton.x, event.mouseButton.y))) {
-              active = i;
-              selectableClicked = true;
-              break;
-            }
-          }
+          // check if mouse is in the selectable area
+          sf::Vector2f mousePosition(event.mouseButton.x, event.mouseButton.y);
+          bool selectableAreaClicked =
+              selectionArea.getGlobalBounds().contains(mousePosition);
 
-          if (!selectableClicked) {
-            sf::Sprite csprite(selectable[active]);
+          if (selectableAreaClicked) {
+            int tileX = int(mousePosition.x) / TILE_SIZE;
+            int tileY = int(mousePosition.y - selectionAreaPadding) / TILE_SIZE;
+            pointer = tileFactory.getTile(tileX, tileY);
+          } else if (!selectionBackground.getGlobalBounds().contains(
+                         mousePosition)) {
+            sf::Sprite csprite(pointer);
             sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
             // get the nearest position to put the csprite on a grid
             int x = mousePosition.x - (mousePosition.x % TILE_SIZE);
@@ -118,16 +129,8 @@ int main() {
     window.draw(pointer);
 
     // UI is drawn last
-    for (size_t i = 0; i < selectable.size(); i++) {
-      if (i == active) {
-        selectable[i].setColor(sf::Color::White);
-        pointer.setTextureRect(selectable[i].getTextureRect());
-      } else {
-        selectable[i].setColor(
-            sf::Color(255, 255, 255, int(SELECTION_ALPHA * 255)));
-      }
-      window.draw(selectable[i]);
-    }
+    window.draw(selectionBackground);
+    window.draw(selectionArea);
 
     window.display();
   }
