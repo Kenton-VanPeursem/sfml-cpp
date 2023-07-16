@@ -52,9 +52,9 @@ int main() {
   float selectionAreaPadding = float(height - texture.getSize().y) / 2;
   selectionArea.setPosition(0.f, selectionAreaPadding);
 
-  sf::RectangleShape selectionBackground(
-      sf::Vector2f(texture.getSize().x, height));
-  selectionBackground.setFillColor(sf::Color(58, 65, 83, 0));
+  sf::RectangleShape selectionBackground;
+  selectionBackground.setSize(sf::Vector2f(texture.getSize().x, height));
+  selectionBackground.setFillColor(sf::Color(58, 65, 83, 200));
 
   TileFactory tileFactory(texture, TILE_SIZE);
 
