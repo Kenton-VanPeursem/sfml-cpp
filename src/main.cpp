@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "tilefactory.h"
+#include "tileplacer.h"
 
 #define TILE_MAP "assets/tiles_packed.png"
 #define TILE_SIZE 18
@@ -18,26 +19,6 @@
 #define WINDOW_WIDTH_TILES 30
 #define WINDOW_HEIGHT_TILES 20
 #define SELECTION_PADDING 6
-#define SELECTION_ALPHA 0.75
-
-void resetOrigin(sf::Sprite *sprite, int rotation) {
-  switch (rotation) {
-  case 0:
-    sprite->setOrigin(sf::Vector2f(0.f, 0.f));
-    break;
-  case 1:
-    sprite->setOrigin(sf::Vector2f(0.f, TILE_SIZE));
-    break;
-  case 2:
-    sprite->setOrigin(sf::Vector2f(TILE_SIZE, TILE_SIZE));
-    break;
-  case 3:
-    sprite->setOrigin(sf::Vector2f(TILE_SIZE, 0.f));
-    break;
-  default:
-    break;
-  }
-}
 
 int main() {
   sf::Texture texture;
@@ -78,9 +59,8 @@ int main() {
 
   std::vector<int> pos{0, 4, 8, 88};
 
-  sf::Sprite pointer = sf::Sprite(tileFactory.getTile(0));
-  pointer.setColor(sf::Color(255, 255, 255, SELECTION_ALPHA * 255));
-  int rotation = 0;
+  TilePlacer tilePlacer;
+  tilePlacer.setActive(sf::Sprite(tileFactory.getTile(0)));
 
   std::vector<sf::Sprite> placedTiles;
   sf::Color clearColor = sf::Color::White;
@@ -109,12 +89,10 @@ int main() {
           if (selectableAreaClicked) {
             int tileX = int(mousePosition.x) / TILE_SIZE;
             int tileY = int(mousePosition.y - selectionAreaPadding) / TILE_SIZE;
-            pointer = tileFactory.getTile(tileX, tileY);
-            pointer.setColor(sf::Color(255, 255, 255, SELECTION_ALPHA * 255));
-            rotation = 0; // reset rotation
+            tilePlacer.setActive(tileFactory.getTile(tileX, tileY));
           } else if (!selectionBackground.getGlobalBounds().contains(
                          mousePosition)) {
-            sf::Sprite csprite(pointer);
+            sf::Sprite csprite(tilePlacer.getSprite());
             sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
             // get the nearest position to put the csprite on a grid
             int x = mousePosition.x - (mousePosition.x % TILE_SIZE);
@@ -144,18 +122,12 @@ int main() {
         int x = event.mouseMove.x - (event.mouseMove.x % TILE_SIZE);
         int y = event.mouseMove.y - (event.mouseMove.y % TILE_SIZE);
         sf::Vector2f pos(x, y);
-        pointer.setRotation(rotation * 90);
-        resetOrigin(&pointer, rotation);
-        pointer.setPosition(pos);
+        tilePlacer.setPosition(pos);
       }
 
       if (event.type == sf::Event::KeyPressed) {
         if (event.key.code == sf::Keyboard::R) {
-          rotation = (rotation + 1) % 4;
-          sf::Vector2f pos(pointer.getPosition());
-          pointer.setRotation(rotation * 90);
-          resetOrigin(&pointer, rotation);
-          pointer.setPosition(pos);
+          tilePlacer.rotateClockwise();
         }
       }
     }
@@ -166,7 +138,7 @@ int main() {
       window.draw(placedTiles[i]);
     }
 
-    window.draw(pointer);
+    window.draw(tilePlacer.getSprite());
 
     // UI is drawn last
     window.draw(selectionBackground);

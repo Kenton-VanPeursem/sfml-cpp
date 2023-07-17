@@ -25,7 +25,7 @@ EXE = $(TARGET_DIR)/sfml-app
 
 all: $(EXE)
 
-$(EXE): tilefactory.o main.o
+$(EXE): tilefactory.o tileplacer.o main.o
 	$(CC) -o $(EXE) $^ $(LDFLAGS)
 
 main.o: $(SOURCE_DIR)/main.cpp
@@ -34,6 +34,8 @@ main.o: $(SOURCE_DIR)/main.cpp
 tilefactory.o: $(SOURCE_DIR)/tilefactory.cpp
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
+tileplacer.o: $(SOURCE_DIR)/tileplacer.cpp
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 clean:
 	$(RM) $(EXE) *.o
 
